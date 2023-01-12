@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option java_package = "com.luiooiul.beat.data.store";
+option java_multiple_files = true;
+
+message SettingPreferences {
+  int32 beat_icon = 1;
+  int32 beat_count = 2;
+  int32 beat_sound_effect = 3;
+
+  string beat_float_text = 4;
+
+  bool beat_auto_click_enabled = 5;
+  bool beat_background_music_enabled = 6;
+}
