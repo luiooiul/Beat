@@ -1,14 +1,10 @@
 package com.luiooiul.beat.feature.setting
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -32,6 +29,9 @@ import com.luiooiul.beat.ui.component.TextPressButton
 import com.luiooiul.beat.ui.component.TitlePanel
 import com.luiooiul.beat.ui.theme.backgroundColor
 import com.luiooiul.beat.ui.theme.smallRoundShape
+import com.luiooiul.beat.util.AUDIO_TYPE
+import com.luiooiul.beat.util.CUSTOM_FILE_ID
+import java.io.InputStream
 
 @OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
@@ -39,18 +39,22 @@ fun SettingScreen(
     onBackClick: () -> Unit,
     viewModel: SettingViewModel = hiltViewModel()
 ) {
+    val currentContext = LocalContext.current
+
+    val filesDir = remember { currentContext.filesDir }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     SettingScreen(
         uiState = uiState,
         onBackClick = onBackClick,
         onBeatIconSelected = viewModel::selectBeatIcon,
-        onBeatSoundEffectPicked = viewModel::pickedBeatSoundEffect,
-        onBeatSoundEffectSelected = viewModel::selectBeatSoundEffect,
-        onFloatTextChange = viewModel::changeFloatText,
+        onBeatSoundEffectPicked = { viewModel.saveCustomEffectSound(filesDir, it) },
+        onBeatSoundEffectSelected = { viewModel.selectBeatSoundEffect(filesDir, it) },
+        onFloatTextChange = viewModel::modifyFloatText,
         onAutoClickEnabled = viewModel::enabledAutoMode,
-        onBackgroundMusicPicked = viewModel::pickedBackgroundMusic,
-        onBackgroundMusicEnabled = viewModel::enabledBackgroundMusic
+        onBackgroundMusicPicked = { viewModel.saveCustomBackgroundMusic(filesDir, it) },
+        onBackgroundMusicEnabled = { viewModel.enabledBackgroundMusic(filesDir, it) }
     )
 }
 
@@ -59,11 +63,11 @@ fun SettingScreen(
     uiState: SettingUiState,
     onBackClick: () -> Unit,
     onBeatIconSelected: (Int) -> Unit,
-    onBeatSoundEffectPicked: (Uri) -> Unit,
+    onBeatSoundEffectPicked: (InputStream) -> Unit,
     onBeatSoundEffectSelected: (Int) -> Unit,
     onFloatTextChange: String.() -> Unit,
     onAutoClickEnabled: (Boolean) -> Unit,
-    onBackgroundMusicPicked: (Uri) -> Unit,
+    onBackgroundMusicPicked: (InputStream) -> Unit,
     onBackgroundMusicEnabled: (Boolean) -> Unit
 ) {
     Column(
@@ -72,34 +76,42 @@ fun SettingScreen(
             .padding(top = 24.dp, start = 24.dp, end = 24.dp),
     ) {
         if (!uiState.isLoading) {
+            // BackButton
             IconPressButton(
                 painter = painterResource(R.drawable.ic_back),
+                modifier = Modifier.size(24.dp),
                 onClick = onBackClick
             )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
             Column(
-                modifier = Modifier
-                    .padding(top = 36.dp)
-                    .verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // TopSpacer
+                Spacer(modifier = Modifier)
+                // FloatText
                 FloatTextPanel(
                     text = uiState.floatText,
                     onFloatTextChange = onFloatTextChange
                 )
+                // BeatIcon
                 BeatIconPanel(
-                    beatIcon = uiState.beatIcon,
-                    beatIconList = listOf(
-                        R.drawable.ic_temple_block_1,
-                        R.drawable.ic_temple_block_2,
+                    beatIconId = uiState.beatIconId,
+                    beatIconIdList = listOf(
+                        R.drawable.ic_temple_block,
+                        R.drawable.ic_fire,
                         R.drawable.ic_star,
-                        R.drawable.ic_love,
-                        R.drawable.ic_coin
+                        R.drawable.ic_coin,
+                        R.drawable.ic_love
                     ),
                     onBeatIconSelected = onBeatIconSelected
                 )
+                // BeatSoundEffect
                 BeatSoundEffectPanel(
-                    beatSoundEffect = uiState.beatSoundEffect,
-                    beatSoundEffectList = listOf(
+                    beatSoundEffectId = uiState.beatSoundEffectId,
+                    beatSoundEffectIdList = listOf(
                         R.raw.sound_effect_1,
                         R.raw.sound_effect_2,
                         R.raw.sound_effect_3,
@@ -113,15 +125,19 @@ fun SettingScreen(
                     onBeatSoundEffectPicked = onBeatSoundEffectPicked,
                     onBeatSoundEffectSelected = onBeatSoundEffectSelected
                 )
+                // AutoClick
                 AutoClickPanel(
                     autoClickEnabled = uiState.autoClickEnabled,
                     onAutoClickEnabled = onAutoClickEnabled
                 )
+                // BackgroundMusic
                 BackgroundMusicPanel(
                     backgroundMusicEnabled = uiState.backgroundMusicEnabled,
                     onBackgroundMusicPicked = onBackgroundMusicPicked,
                     onBackgroundMusicEnabled = onBackgroundMusicEnabled
                 )
+                // BottomSpacer
+                Spacer(modifier = Modifier)
             }
         }
     }
@@ -130,12 +146,9 @@ fun SettingScreen(
 @Composable
 fun FloatTextPanel(
     text: String,
-    onFloatTextChange: String.() -> Unit,
-    defaultFloatText: String = stringResource(R.string.float_text_default)
+    onFloatTextChange: String.() -> Unit
 ) {
-    var floatText by remember {
-        mutableStateOf(text.ifEmpty { defaultFloatText })
-    }
+    var floatText by remember { mutableStateOf(text) }
 
     TitlePanel(title = stringResource(R.string.float_text_title)) {
         BasicTextField(
@@ -158,25 +171,25 @@ fun FloatTextPanel(
 
 @Composable
 fun BeatIconPanel(
-    beatIcon: Int,
-    beatIconList: List<Int>,
+    beatIconId: Int,
+    beatIconIdList: List<Int>,
     onBeatIconSelected: (Int) -> Unit
 ) {
     TitlePanel(title = stringResource(R.string.beat_icon_title)) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(5),
-            modifier = Modifier.height(64.dp),
+            modifier = Modifier.height(56.dp),
             userScrollEnabled = false,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(beatIconList) {
+            items(beatIconIdList) {
                 IconPressButton(
                     painter = painterResource(id = it),
                     modifier = Modifier
                         .background(backgroundColor, smallRoundShape)
-                        .alpha(if (it == beatIcon) 1f else 0.5f)
-                        .size(56.dp)
+                        .alpha(if (it == beatIconId) 1f else 0.5f)
+                        .height(56.dp)
                         .padding(16.dp),
                     onClick = { onBeatIconSelected(it) }
                 )
@@ -187,33 +200,38 @@ fun BeatIconPanel(
 
 @Composable
 fun BeatSoundEffectPanel(
-    beatSoundEffect: Int,
-    beatSoundEffectList: List<Int>,
-    onBeatSoundEffectPicked: (Uri) -> Unit,
+    beatSoundEffectId: Int,
+    beatSoundEffectIdList: List<Int>,
+    onBeatSoundEffectPicked: (InputStream) -> Unit,
     onBeatSoundEffectSelected: (Int) -> Unit
 ) {
+    val currentContext = LocalContext.current
+
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
-            onBeatSoundEffectPicked(uri)
-            onBeatSoundEffectSelected(1)
+            val fileStream = currentContext.contentResolver.openInputStream(uri)
+            if (fileStream != null) {
+                onBeatSoundEffectPicked(fileStream)
+                onBeatSoundEffectSelected(CUSTOM_FILE_ID)
+            }
         }
     }
 
     TitlePanel(title = stringResource(id = R.string.beat_sound_effect_title)) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(5),
-            modifier = Modifier.height(130.dp),
+            modifier = Modifier.height(128.dp),
             userScrollEnabled = false,
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            itemsIndexed(beatSoundEffectList) { index, id ->
+            itemsIndexed(beatSoundEffectIdList) { index, id ->
                 TextPressButton(
                     text = (index + 1).toString(),
                     modifier = Modifier
                         .background(backgroundColor, smallRoundShape)
-                        .alpha(if (beatSoundEffect == id) 1f else 0.5f)
-                        .size(56.dp),
+                        .alpha(if (beatSoundEffectId == id) 1f else 0.5f)
+                        .height(56.dp),
                     style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold),
                     onClick = { onBeatSoundEffectSelected(id) }
                 )
@@ -223,10 +241,10 @@ fun BeatSoundEffectPanel(
                     painter = painterResource(R.drawable.ic_add),
                     modifier = Modifier
                         .background(backgroundColor, smallRoundShape)
-                        .alpha(if (beatSoundEffect == 1) 1f else 0.5f)
-                        .size(56.dp)
-                        .padding(18.dp),
-                    onClick = { picker.launch("audio/*") }
+                        .alpha(if (beatSoundEffectId == CUSTOM_FILE_ID) 1f else 0.5f)
+                        .height(56.dp)
+                        .padding(16.dp),
+                    onClick = { picker.launch(AUDIO_TYPE) }
                 )
             }
         }
@@ -270,13 +288,18 @@ fun AutoClickPanel(
 @Composable
 fun BackgroundMusicPanel(
     backgroundMusicEnabled: Boolean,
-    onBackgroundMusicPicked: (Uri) -> Unit,
+    onBackgroundMusicPicked: (InputStream) -> Unit,
     onBackgroundMusicEnabled: (Boolean) -> Unit
 ) {
+    val currentContext = LocalContext.current
+
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
-            onBackgroundMusicPicked(uri)
-            onBackgroundMusicEnabled(true)
+            val fileStream = currentContext.contentResolver.openInputStream(uri)
+            if (fileStream != null) {
+                onBackgroundMusicPicked(fileStream)
+                onBackgroundMusicEnabled(true)
+            }
         }
     }
 
@@ -290,7 +313,7 @@ fun BackgroundMusicPanel(
                     .weight(1f)
                     .height(56.dp),
                 style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                onClick = { picker.launch("audio/*") }
+                onClick = { picker.launch(AUDIO_TYPE) }
             )
 
             Spacer(modifier = Modifier.width(16.dp))

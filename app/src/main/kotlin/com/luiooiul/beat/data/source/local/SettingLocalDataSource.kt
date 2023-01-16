@@ -1,101 +1,95 @@
 package com.luiooiul.beat.data.source.local
 
 import androidx.datastore.core.DataStore
-import com.luiooiul.beat.R
 import com.luiooiul.beat.data.model.Setting
 import com.luiooiul.beat.data.source.SettingDataSource
 import com.luiooiul.beat.data.store.SettingPreferences
 import com.luiooiul.beat.data.store.copy
+import com.luiooiul.beat.di.IoDispatcher
+import com.luiooiul.beat.util.BACKGROUND_MUSIC_FILE
+import com.luiooiul.beat.util.SOUND_EFFECT_FILE
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.InputStream
 import javax.inject.Inject
 
 class SettingLocalDataSource @Inject constructor(
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val settingPreferences: DataStore<SettingPreferences>
 ) : SettingDataSource {
 
-    override fun getSettingStream(): Flow<Setting> {
-        return settingPreferences.data.map { setting ->
+    override fun getSettingStream(): Flow<Setting> = settingPreferences.data
+        .map { setting ->
             Setting(
                 beatCount = setting.beatCount,
-                beatIcon = setting.beatIcon.takeUnless { it == 0 } ?: R.drawable.ic_temple_block_1,
-                beatSoundEffect = setting.beatSoundEffect.takeUnless { it == 0 } ?: R.raw.sound_effect_1,
+                beatIconId = setting.beatIconId,
+                beatSoundEffectId = setting.beatSoundEffectId,
                 beatFloatText = setting.beatFloatText,
                 beatAutoClickEnabled = setting.beatAutoClickEnabled,
                 beatBackgroundMusicEnabled = setting.beatBackgroundMusicEnabled
             )
         }
-    }
 
     override suspend fun addBeatCount() {
-        try {
-            settingPreferences.updateData {
-                it.copy {
-                    beatCount += 1
-                }
+        settingPreferences.updateData {
+            it.copy {
+                beatCount += 1
             }
-        } catch (exception: Exception) {
-            exception.printStackTrace()
         }
     }
 
     override suspend fun selectBeatIcon(id: Int) {
-        try {
-            settingPreferences.updateData {
-                it.copy {
-                    beatIcon = id
-                }
+        settingPreferences.updateData {
+            it.copy {
+                beatIconId = id
             }
-        } catch (exception: Exception) {
-            exception.printStackTrace()
         }
     }
 
     override suspend fun selectSoundEffect(id: Int) {
-        try {
-            settingPreferences.updateData {
-                it.copy {
-                    beatSoundEffect = id
-                }
+        settingPreferences.updateData {
+            it.copy {
+                beatSoundEffectId = id
             }
-        } catch (exception: Exception) {
-            exception.printStackTrace()
         }
     }
 
-    override suspend fun changeFloatText(text: String) {
-        try {
-            settingPreferences.updateData {
-                it.copy {
-                    beatFloatText = text
-                }
-            }
-        } catch (exception: Exception) {
-            exception.printStackTrace()
+    override suspend fun saveCustomSoundEffect(filesDir: File, inputStream: InputStream) {
+        withContext(ioDispatcher) {
+            File(filesDir, SOUND_EFFECT_FILE).writeBytes(inputStream.readBytes())
         }
     }
 
-    override suspend fun enabledAutoClick(enabled: Boolean) {
-        try {
-            settingPreferences.updateData {
-                it.copy {
-                    beatAutoClickEnabled = enabled
-                }
+    override suspend fun modifyFloatText(text: String) {
+        settingPreferences.updateData {
+            it.copy {
+                beatFloatText = text
             }
-        } catch (exception: Exception) {
-            exception.printStackTrace()
         }
     }
 
-    override suspend fun enabledBackgroundMusic(enabled: Boolean) {
-        try {
-            settingPreferences.updateData {
-                it.copy {
-                    beatBackgroundMusicEnabled = enabled
-                }
+    override suspend fun enabledAutoClick(isEnabled: Boolean) {
+        settingPreferences.updateData {
+            it.copy {
+                beatAutoClickEnabled = isEnabled
             }
-        } catch (exception: Exception) {
-            exception.printStackTrace()
+        }
+    }
+
+    override suspend fun enabledBackgroundMusic(isEnabled: Boolean) {
+        settingPreferences.updateData {
+            it.copy {
+                beatBackgroundMusicEnabled = isEnabled
+            }
+        }
+    }
+
+    override suspend fun saveCustomBackgroundMusic(filesDir: File, inputStream: InputStream) {
+        withContext(ioDispatcher) {
+            File(filesDir, BACKGROUND_MUSIC_FILE).writeBytes(inputStream.readBytes())
         }
     }
 }

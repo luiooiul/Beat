@@ -10,6 +10,7 @@ import com.luiooiul.beat.data.source.SettingDataSource
 import com.luiooiul.beat.data.source.local.SettingLocalDataSource
 import com.luiooiul.beat.data.store.SettingPreferences
 import com.luiooiul.beat.data.store.SettingPrefsSerializer
+import com.luiooiul.beat.util.SETTING_PREFERENCES_FILE
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -44,8 +45,7 @@ object DataStoreModule {
     fun provideSettingPrefsDataStore(
         @ApplicationContext context: Context,
         settingPrefsSerializer: SettingPrefsSerializer
-    ): DataStore<SettingPreferences> =
-        DataStoreFactory.create(serializer = settingPrefsSerializer) {
-            context.dataStoreFile("setting_preferences.pb")
-        }
+    ): DataStore<SettingPreferences> = DataStoreFactory.create(settingPrefsSerializer) {
+        context.dataStoreFile(SETTING_PREFERENCES_FILE)
+    }
 }

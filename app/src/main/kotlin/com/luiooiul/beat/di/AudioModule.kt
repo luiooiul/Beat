@@ -14,6 +14,7 @@ import javax.inject.Singleton
 object AudioModule {
     @Provides
     @Singleton
-    fun provideAudioManager(@ApplicationContext context: Context): AudioManager =
-        AudioManager(context)
+    fun provideAudioManager(@ApplicationContext context: Context): AudioManager {
+        return AudioManager(context)
+    }
 }

@@ -3,6 +3,8 @@ package com.luiooiul.beat.data.repo
 import com.luiooiul.beat.data.model.Setting
 import com.luiooiul.beat.data.source.SettingDataSource
 import kotlinx.coroutines.flow.Flow
+import java.io.File
+import java.io.InputStream
 import javax.inject.Inject
 
 class DefaultSettingRepository @Inject constructor(
@@ -25,15 +27,23 @@ class DefaultSettingRepository @Inject constructor(
         settingLocalDataSource.selectSoundEffect(id)
     }
 
-    override suspend fun changeFloatText(text: String) {
-        settingLocalDataSource.changeFloatText(text)
+    override suspend fun saveCustomSoundEffect(filesDir: File, inputStream: InputStream) {
+        settingLocalDataSource.saveCustomSoundEffect(filesDir, inputStream)
     }
 
-    override suspend fun enabledAutoClick(enabled: Boolean) {
-        settingLocalDataSource.enabledAutoClick(enabled)
+    override suspend fun modifyFloatText(text: String) {
+        settingLocalDataSource.modifyFloatText(text)
     }
 
-    override suspend fun enabledBackgroundMusic(enabled: Boolean) {
-        settingLocalDataSource.enabledBackgroundMusic(enabled)
+    override suspend fun enabledAutoClick(isEnabled: Boolean) {
+        settingLocalDataSource.enabledAutoClick(isEnabled)
+    }
+
+    override suspend fun enabledBackgroundMusic(isEnabled: Boolean) {
+        settingLocalDataSource.enabledBackgroundMusic(isEnabled)
+    }
+
+    override suspend fun saveCustomBackgroundMusic(filesDir: File, inputStream: InputStream) {
+        settingLocalDataSource.saveCustomBackgroundMusic(filesDir, inputStream)
     }
 }

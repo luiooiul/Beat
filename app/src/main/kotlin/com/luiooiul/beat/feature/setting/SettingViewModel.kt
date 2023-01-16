@@ -1,22 +1,25 @@
 package com.luiooiul.beat.feature.setting
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.luiooiul.beat.data.repo.SettingRepository
 import com.luiooiul.beat.util.AudioManager
-import com.luiooiul.beat.domain.SaveFileUseCase
+import com.luiooiul.beat.util.BACKGROUND_MUSIC_FILE
+import com.luiooiul.beat.util.CUSTOM_FILE_ID
+import com.luiooiul.beat.util.SOUND_EFFECT_FILE
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.InputStream
 import javax.inject.Inject
 
 data class SettingUiState(
     val isLoading: Boolean = false,
-    val beatIcon: Int = 0,
-    val beatSoundEffect: Int = 0,
+    val beatIconId: Int = 0,
+    val beatSoundEffectId: Int = 0,
     val floatText: String = "",
     val autoClickEnabled: Boolean = false,
     val backgroundMusicEnabled: Boolean = false
@@ -24,15 +27,14 @@ data class SettingUiState(
 
 @HiltViewModel
 class SettingViewModel @Inject constructor(
-    private val settingRepository: SettingRepository,
-    private val saveFileUseCase: SaveFileUseCase,
-    private val audioManager: AudioManager
+    private val audioManager: AudioManager,
+    private val settingRepository: SettingRepository
 ) : ViewModel() {
 
     val uiState = settingRepository.getSettingStream().map { setting ->
         SettingUiState(
-            beatIcon = setting.beatIcon,
-            beatSoundEffect = setting.beatSoundEffect,
+            beatIconId = setting.beatIconId,
+            beatSoundEffectId = setting.beatSoundEffectId,
             floatText = setting.beatFloatText,
             autoClickEnabled = setting.beatAutoClickEnabled,
             backgroundMusicEnabled = setting.beatBackgroundMusicEnabled
@@ -47,33 +49,43 @@ class SettingViewModel @Inject constructor(
         settingRepository.selectBeatIcon(id)
     }
 
-    fun pickedBeatSoundEffect(uri: Uri) = viewModelScope.launch {
-        saveFileUseCase(uri, "sound_effect")
-    }
-
-    fun selectBeatSoundEffect(id: Int) = viewModelScope.launch {
+    fun selectBeatSoundEffect(filesDir: File, id: Int) = viewModelScope.launch {
         settingRepository.selectSoundEffect(id)
+        // Preview
+        audioManager.unloadSound()
+        if (id == CUSTOM_FILE_ID) {
+            val file = File(filesDir, SOUND_EFFECT_FILE)
+            audioManager.loadSoundByFile(file)
+        } else {
+            audioManager.loadSoundByResId(id)
+        }
+        audioManager.playSound()
     }
 
-    fun changeFloatText(text: String) = viewModelScope.launch {
-        settingRepository.changeFloatText(text)
+    fun saveCustomEffectSound(filesDir: File, inputStream: InputStream) = viewModelScope.launch {
+        settingRepository.saveCustomSoundEffect(filesDir, inputStream)
+    }
+
+    fun modifyFloatText(text: String) = viewModelScope.launch {
+        settingRepository.modifyFloatText(text)
     }
 
     fun enabledAutoMode(enabled: Boolean) = viewModelScope.launch {
         settingRepository.enabledAutoClick(enabled)
     }
 
-    fun pickedBackgroundMusic(uri: Uri) = viewModelScope.launch {
-        saveFileUseCase(uri, "background_music")
-    }
+    fun enabledBackgroundMusic(filesDir: File, isEnabled: Boolean) = viewModelScope.launch {
+        settingRepository.enabledBackgroundMusic(isEnabled)
 
-    fun enabledBackgroundMusic(enabled: Boolean) = viewModelScope.launch {
-        settingRepository.enabledBackgroundMusic(enabled)
-
-        if (enabled) {
-            audioManager.loadBackgroundMusic()
+        if (isEnabled) {
+            val file = File(filesDir, BACKGROUND_MUSIC_FILE)
+            audioManager.playMediaByFile(file)
         } else {
             audioManager.releaseMediaPlayer()
         }
+    }
+
+    fun saveCustomBackgroundMusic(filesDir: File, inputStream: InputStream) = viewModelScope.launch {
+        settingRepository.saveCustomBackgroundMusic(filesDir, inputStream)
     }
 }
