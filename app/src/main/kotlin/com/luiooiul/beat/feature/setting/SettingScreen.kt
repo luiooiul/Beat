@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,13 +49,14 @@ fun SettingScreen(
 
     SettingScreen(
         uiState = uiState,
+        floatText = viewModel.floatText,
         onBackClick = onBackClick,
         onBeatIconSelected = viewModel::selectBeatIcon,
-        onBeatSoundEffectPicked = { viewModel.saveCustomEffectSound(filesDir, it) },
+        onBeatSoundEffectPicked = { viewModel.selectCustomSoundEffect(filesDir, it) },
         onBeatSoundEffectSelected = { viewModel.selectBeatSoundEffect(filesDir, it) },
-        onFloatTextChange = viewModel::modifyFloatText,
-        onAutoClickEnabled = viewModel::enabledAutoMode,
-        onBackgroundMusicPicked = { viewModel.saveCustomBackgroundMusic(filesDir, it) },
+        onFloatTextChange = viewModel::updateFloatText,
+        onAutoClickEnabled = viewModel::enabledAutoClick,
+        onBackgroundMusicPicked = { viewModel.selectCustomBackgroundMusic(filesDir, it) },
         onBackgroundMusicEnabled = { viewModel.enabledBackgroundMusic(filesDir, it) }
     )
 }
@@ -61,6 +64,7 @@ fun SettingScreen(
 @Composable
 fun SettingScreen(
     uiState: SettingUiState,
+    floatText: String,
     onBackClick: () -> Unit,
     onBeatIconSelected: (Int) -> Unit,
     onBeatSoundEffectPicked: (InputStream) -> Unit,
@@ -93,7 +97,7 @@ fun SettingScreen(
                 Spacer(modifier = Modifier)
                 // FloatText
                 FloatTextPanel(
-                    text = uiState.floatText,
+                    text = floatText,
                     onFloatTextChange = onFloatTextChange
                 )
                 // BeatIcon
@@ -148,24 +152,32 @@ fun FloatTextPanel(
     text: String,
     onFloatTextChange: String.() -> Unit
 ) {
-    var floatText by remember { mutableStateOf(text) }
-
     TitlePanel(title = stringResource(R.string.float_text_title)) {
         BasicTextField(
-            value = floatText,
-            onValueChange = {
-                if (it.length <= 10) {
-                    floatText = it
-                    onFloatTextChange(it)
-                }
-            },
-            modifier = Modifier
-                .background(backgroundColor, smallRoundShape)
-                .padding(16.dp)
-                .fillMaxWidth(),
+            value = text,
+            onValueChange = onFloatTextChange,
             textStyle = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold),
             cursorBrush = SolidColor(Color.White)
-        )
+        ) { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .background(backgroundColor, smallRoundShape)
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                if (text.isEmpty()) {
+                    BasicText(
+                        text = stringResource(R.string.float_text_hint),
+                        modifier = Modifier.alpha(0.5f),
+                        style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else {
+                    innerTextField()
+                }
+            }
+        }
     }
 }
 
@@ -212,7 +224,6 @@ fun BeatSoundEffectPanel(
             val fileStream = currentContext.contentResolver.openInputStream(uri)
             if (fileStream != null) {
                 onBeatSoundEffectPicked(fileStream)
-                onBeatSoundEffectSelected(CUSTOM_FILE_ID)
             }
         }
     }
@@ -298,7 +309,6 @@ fun BackgroundMusicPanel(
             val fileStream = currentContext.contentResolver.openInputStream(uri)
             if (fileStream != null) {
                 onBackgroundMusicPicked(fileStream)
-                onBackgroundMusicEnabled(true)
             }
         }
     }

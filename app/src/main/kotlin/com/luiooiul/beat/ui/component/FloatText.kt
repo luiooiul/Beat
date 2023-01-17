@@ -5,6 +5,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.*
 import kotlinx.coroutines.*
@@ -15,36 +16,17 @@ import kotlin.math.max
 @Composable
 fun FloatText(
     text: String,
-    times: Int,
+    animateList: List<FloatTextAnim>,
     modifier: Modifier = Modifier,
     style: TextStyle = TextStyle()
 ) {
     val textMeasurer = rememberTextMeasurer()
     val textLayoutResult by remember { mutableStateOf(textMeasurer.measure(AnnotatedString(text), style)) }
 
-    val rememberTimes by rememberUpdatedState(times)
-    val animatedFloatTextList = remember { mutableStateListOf<Animatable<Float, AnimationVector1D>>() }
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { rememberTimes }.drop(1).collect {
-            launch {
-                with(Animatable(1f)) {
-                    animatedFloatTextList.add(this)
-                    this.animateTo(0f, tween(800))
-                    animatedFloatTextList.remove(this)
-                }
-            }
-        }
-    }
-
     Layout(
         modifier = modifier.drawBehind {
-            animatedFloatTextList.forEach {
-                drawText(
-                    alpha = it.value,
-                    topLeft = Offset(0f, textLayoutResult.size.height * it.value.dec()),
-                    textLayoutResult = textLayoutResult
-                )
+            animateList.forEach {
+                with(it) { draw(textLayoutResult) }
             }
         }
     ) { _, constraints ->
@@ -54,4 +36,28 @@ fun FloatText(
             layout(width, height) {}
         }
     }
+}
+
+class FloatTextAnim {
+
+    private val anim = Animatable(1f)
+
+    @OptIn(ExperimentalTextApi::class)
+    fun DrawScope.draw(textLayoutResult: TextLayoutResult) {
+        with(textLayoutResult) {
+            drawText(
+                alpha = anim.value,
+                topLeft = Offset(
+                    x = 0f,
+                    y = size.height * anim.value.dec()
+                ),
+                textLayoutResult = this
+            )
+        }
+    }
+
+    suspend fun start() = anim.animateTo(
+        targetValue = 0f,
+        animationSpec = tween(600)
+    )
 }

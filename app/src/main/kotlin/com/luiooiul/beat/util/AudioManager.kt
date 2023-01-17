@@ -61,11 +61,10 @@ class AudioManager(private val context: Context) {
 
     fun playMediaByFile(file: File) {
         if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer
-                .create(context, file.toUri())
-                .apply { isLooping = true }
+            mediaPlayer = runCatching { MediaPlayer.create(context, file.toUri()) }.getOrNull()
         }
         mediaPlayer?.start()
+        mediaPlayer?.isLooping = true
     }
 
     fun releaseSoundPool() {

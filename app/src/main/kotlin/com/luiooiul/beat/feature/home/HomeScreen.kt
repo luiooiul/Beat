@@ -1,13 +1,11 @@
 package com.luiooiul.beat.feature.home
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -22,9 +20,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luiooiul.beat.R
+import com.luiooiul.beat.ui.component.AnimateIconPressButton
 import com.luiooiul.beat.ui.component.FloatText
+import com.luiooiul.beat.ui.component.FloatTextAnim
 import com.luiooiul.beat.ui.component.IconPressButton
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 import kotlin.math.min
 
 @OptIn(ExperimentalLifecycleComposeApi::class)
@@ -33,16 +34,35 @@ fun HomeScreen(
     onSettingClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val currentContext = LocalContext.current
+
+    val filesDir = remember { currentContext.filesDir }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val filesDir = LocalContext.current.filesDir
+    val interactionSource = remember { MutableInteractionSource() }
+
     LaunchedEffect(Unit) {
         viewModel.loadSoundEffect(filesDir)
         viewModel.playBackgroundMusic(filesDir)
+        viewModel.startAutoClick(interactionSource)
+    }
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { viewModel.floatTextAnimList.lastOrNull() }
+            .filterNotNull()
+            .collect { anim ->
+                launch {
+                    anim.start()
+                    viewModel.finishFloatTextAnim(anim)
+                }
+            }
     }
 
     HomeScreen(
         uiState = uiState,
+        interactionSource = interactionSource,
+        animateList = viewModel.floatTextAnimList,
         onBeat = viewModel::beat,
         onSettingClick = onSettingClick
     )
@@ -51,6 +71,8 @@ fun HomeScreen(
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    interactionSource: MutableInteractionSource,
+    animateList: List<FloatTextAnim>,
     onBeat: () -> Unit,
     onSettingClick: () -> Unit
 ) {
@@ -61,10 +83,6 @@ fun HomeScreen(
 
     val beatButtonSize = remember {
         min(screenWidth, screenHeight).div(2).dp
-    }
-
-    val interactionSource = remember {
-        MutableInteractionSource()
     }
 
     Box(
@@ -83,7 +101,7 @@ fun HomeScreen(
             if (uiState.floatText.isNotEmpty()) {
                 FloatText(
                     text = uiState.floatText,
-                    times = uiState.beatCount,
+                    animateList = animateList,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .offset(beatButtonSize.unaryMinus() / 10, beatButtonSize.unaryMinus() * 3 / 5),
@@ -91,7 +109,7 @@ fun HomeScreen(
                 )
             }
             // BeatButton
-            IconPressButton(
+            AnimateIconPressButton(
                 painter = painterResource(uiState.beatIconId),
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -108,18 +126,6 @@ fun HomeScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            // AutoClick
-            LaunchedEffect(Unit) {
-                val pressInteraction = PressInteraction.Press(Offset.Zero)
-                val releaseInteraction = PressInteraction.Release(pressInteraction)
-                while (uiState.autoClickEnabled) {
-                    interactionSource.emit(pressInteraction)
-                    delay(250)
-                    interactionSource.emit(releaseInteraction)
-                    onBeat()
-                    delay(1000)
-                }
-            }
         }
     }
 }

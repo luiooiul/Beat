@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">敲敲</string>
+    <string name="beat_count_text">敲击数 ：%1$d</string>
+    <string name="beat_icon_title">敲击图标</string>
+    <string name="beat_sound_effect_title">敲击音效</string>
+    <string name="float_text_title">悬浮文本</string>
+    <string name="float_text_hint">输入自定义文本</string>
+    <string name="auto_click_title">自动点击</string>
+    <string name="auto_click_enabled_text">开启</string>
+    <string name="auto_click_disabled_text">关闭</string>
+    <string name="background_music_title">背景音乐</string>
+    <string name="background_music_none_text">无</string>
+    <string name="background_music_selected_text">选择</string>
+</resources>

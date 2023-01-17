@@ -22,9 +22,9 @@ fun TitlePanel(
             text = title,
             style = TextStyle(color = Color.White, fontWeight = FontWeight.Bold)
         )
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         content()
     }
 }
