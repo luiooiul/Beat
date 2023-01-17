@@ -76,6 +76,11 @@ class SettingViewModel @Inject constructor(
         settingRepository.selectBeatIcon(id)
     }
 
+    fun selectCustomBeatIcon(filesDir: File, inputStream: InputStream) = viewModelScope.launch {
+        settingRepository.saveCustomBeatIcon(filesDir, inputStream)
+        settingRepository.selectBeatIcon(CUSTOM_FILE_ID)
+    }
+
     fun selectBeatSoundEffect(filesDir: File, id: Int) = viewModelScope.launch {
         settingRepository.selectSoundEffect(id)
         // Preview

@@ -43,17 +43,15 @@ class FloatTextAnim {
     private val anim = Animatable(1f)
 
     @OptIn(ExperimentalTextApi::class)
-    fun DrawScope.draw(textLayoutResult: TextLayoutResult) {
-        with(textLayoutResult) {
-            drawText(
-                alpha = anim.value,
-                topLeft = Offset(
-                    x = 0f,
-                    y = size.height * anim.value.dec()
-                ),
-                textLayoutResult = this
-            )
-        }
+    fun DrawScope.draw(layoutResult: TextLayoutResult) {
+        drawText(
+            alpha = anim.value,
+            topLeft = Offset(
+                x = 0f,
+                y = layoutResult.size.height * anim.value.dec()
+            ),
+            textLayoutResult = layoutResult
+        )
     }
 
     suspend fun start() = anim.animateTo(

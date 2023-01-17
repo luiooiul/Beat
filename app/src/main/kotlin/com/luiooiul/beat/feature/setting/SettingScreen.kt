@@ -4,12 +4,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
@@ -23,7 +28,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luiooiul.beat.R
 import com.luiooiul.beat.ui.component.IconPressButton
@@ -33,9 +37,9 @@ import com.luiooiul.beat.ui.theme.backgroundColor
 import com.luiooiul.beat.ui.theme.smallRoundShape
 import com.luiooiul.beat.util.AUDIO_TYPE
 import com.luiooiul.beat.util.CUSTOM_FILE_ID
+import com.luiooiul.beat.util.IMAGE_TYPE
 import java.io.InputStream
 
-@OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun SettingScreen(
     onBackClick: () -> Unit,
@@ -51,6 +55,7 @@ fun SettingScreen(
         uiState = uiState,
         floatText = viewModel.floatText,
         onBackClick = onBackClick,
+        onBeatIconPicked = { viewModel.selectCustomBeatIcon(filesDir, it) },
         onBeatIconSelected = viewModel::selectBeatIcon,
         onBeatSoundEffectPicked = { viewModel.selectCustomSoundEffect(filesDir, it) },
         onBeatSoundEffectSelected = { viewModel.selectBeatSoundEffect(filesDir, it) },
@@ -66,6 +71,7 @@ fun SettingScreen(
     uiState: SettingUiState,
     floatText: String,
     onBackClick: () -> Unit,
+    onBeatIconPicked: (InputStream) -> Unit,
     onBeatIconSelected: (Int) -> Unit,
     onBeatSoundEffectPicked: (InputStream) -> Unit,
     onBeatSoundEffectSelected: (Int) -> Unit,
@@ -107,9 +113,9 @@ fun SettingScreen(
                         R.drawable.ic_temple_block,
                         R.drawable.ic_fire,
                         R.drawable.ic_star,
-                        R.drawable.ic_coin,
-                        R.drawable.ic_love
+                        R.drawable.ic_coin
                     ),
+                    onBeatIconPicked = onBeatIconPicked,
                     onBeatIconSelected = onBeatIconSelected
                 )
                 // BeatSoundEffect
@@ -185,8 +191,20 @@ fun FloatTextPanel(
 fun BeatIconPanel(
     beatIconId: Int,
     beatIconIdList: List<Int>,
+    onBeatIconPicked: (InputStream) -> Unit,
     onBeatIconSelected: (Int) -> Unit
 ) {
+    val currentContext = LocalContext.current
+
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val fileStream = currentContext.contentResolver.openInputStream(uri)
+            if (fileStream != null) {
+                onBeatIconPicked(fileStream)
+            }
+        }
+    }
+
     TitlePanel(title = stringResource(R.string.beat_icon_title)) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(5),
@@ -204,6 +222,17 @@ fun BeatIconPanel(
                         .height(56.dp)
                         .padding(16.dp),
                     onClick = { onBeatIconSelected(it) }
+                )
+            }
+            item {
+                IconPressButton(
+                    painter = painterResource(R.drawable.ic_add),
+                    modifier = Modifier
+                        .background(backgroundColor, smallRoundShape)
+                        .alpha(if (beatIconId == CUSTOM_FILE_ID) 1f else 0.5f)
+                        .height(56.dp)
+                        .padding(16.dp),
+                    onClick = { picker.launch(IMAGE_TYPE) }
                 )
             }
         }

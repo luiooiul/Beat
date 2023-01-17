@@ -43,9 +43,13 @@ fun AnimateIconPressButton(
             .clickable(indication = null, interactionSource = interactionSource, enabled = enabled, onClick = onClick)
     ) { _, constraints ->
         with(constraints) {
-            width = minWidth
-            height = minHeight
-            layout(animateWidth, animateHeight) {}
+            if (width == 0 && height == 0) {
+                width = minWidth
+                height = minHeight
+                layout(minWidth, minHeight) {}
+            } else {
+                layout(animateWidth, animateHeight) {}
+            }
         }
     }
 }

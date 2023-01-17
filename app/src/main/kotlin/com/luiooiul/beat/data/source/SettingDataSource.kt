@@ -13,6 +13,8 @@ interface SettingDataSource {
 
     suspend fun selectBeatIcon(id: Int)
 
+    suspend fun saveCustomBeatIcon(filesDir: File, inputStream: InputStream)
+
     suspend fun selectSoundEffect(id: Int)
 
     suspend fun saveCustomSoundEffect(filesDir: File, inputStream: InputStream)

@@ -7,6 +7,7 @@ import com.luiooiul.beat.data.store.SettingPreferences
 import com.luiooiul.beat.data.store.copy
 import com.luiooiul.beat.di.IoDispatcher
 import com.luiooiul.beat.util.BACKGROUND_MUSIC_FILE
+import com.luiooiul.beat.util.ICON_FILE
 import com.luiooiul.beat.util.SOUND_EFFECT_FILE
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -46,6 +47,12 @@ class SettingLocalDataSource @Inject constructor(
             it.copy {
                 beatIconId = id
             }
+        }
+    }
+
+    override suspend fun saveCustomBeatIcon(filesDir: File, inputStream: InputStream) {
+        withContext(ioDispatcher) {
+            File(filesDir, ICON_FILE).writeBytes(inputStream.readBytes())
         }
     }
 

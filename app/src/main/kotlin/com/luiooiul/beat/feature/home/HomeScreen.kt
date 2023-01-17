@@ -17,18 +17,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.ExperimentalLifecycleComposeApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.rememberAsyncImagePainter
 import com.luiooiul.beat.R
 import com.luiooiul.beat.ui.component.AnimateIconPressButton
 import com.luiooiul.beat.ui.component.FloatText
 import com.luiooiul.beat.ui.component.FloatTextAnim
 import com.luiooiul.beat.ui.component.IconPressButton
+import com.luiooiul.beat.util.CUSTOM_FILE_ID
+import com.luiooiul.beat.util.ICON_FILE
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.math.min
 
-@OptIn(ExperimentalLifecycleComposeApi::class)
 @Composable
 fun HomeScreen(
     onSettingClick: () -> Unit,
@@ -76,6 +78,7 @@ fun HomeScreen(
     onBeat: () -> Unit,
     onSettingClick: () -> Unit
 ) {
+    val currentContext = LocalContext.current
     val currentConfiguration = LocalConfiguration.current
 
     val screenWidth = currentConfiguration.screenWidthDp
@@ -88,9 +91,15 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 8.dp)
+            .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 12.dp)
     ) {
         if (!uiState.isLoading) {
+            val beatButtonPainter = if (uiState.beatIconId == CUSTOM_FILE_ID) {
+                val file = File(currentContext.filesDir, ICON_FILE)
+                rememberAsyncImagePainter(file)
+            } else {
+                painterResource(uiState.beatIconId)
+            }
             // SettingButton
             IconPressButton(
                 painter = painterResource(R.drawable.ic_setting),
@@ -110,7 +119,7 @@ fun HomeScreen(
             }
             // BeatButton
             AnimateIconPressButton(
-                painter = painterResource(uiState.beatIconId),
+                painter = beatButtonPainter,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(beatButtonSize),

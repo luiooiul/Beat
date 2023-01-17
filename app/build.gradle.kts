@@ -16,8 +16,8 @@ android {
         applicationId = "com.luiooiul.beat"
         minSdk = 21
         targetSdk = 33
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
 
         resourceConfigurations += listOf("en", "zh")
     }
@@ -35,6 +35,7 @@ android {
             excludes += setOf(
                 "kotlin/**",
                 "google/**",
+                "okhttp3/**",
                 "META-INF/*.version",
                 "DebugProbesKt.bin",
                 "kotlin-tooling-metadata.json"
@@ -71,13 +72,15 @@ protobuf {
 }
 
 dependencies {
+    implementation("io.coil-kt:coil-gif:2.2.2")
+    implementation("io.coil-kt:coil-compose:2.2.2")
     implementation("androidx.datastore:datastore:1.0.0")
     implementation("com.google.dagger:hilt-android:2.44.2")
     implementation("androidx.activity:activity-compose:1.6.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
     implementation("androidx.navigation:navigation-compose:2.5.3")
     implementation("androidx.compose.foundation:foundation:1.3.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0-alpha03")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0-alpha04")
     implementation("com.google.protobuf:protobuf-kotlin-lite:3.21.12")
     kapt("com.google.dagger:hilt-android-compiler:2.44.2")
 }

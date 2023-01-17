@@ -2,8 +2,10 @@ package com.luiooiul.beat.util
 
 import com.luiooiul.beat.R
 
+const val IMAGE_TYPE = "image/*"
 const val AUDIO_TYPE = "audio/*"
 
+const val ICON_FILE = "icon"
 const val SOUND_EFFECT_FILE = "sound_effect"
 const val BACKGROUND_MUSIC_FILE = "background_music"
 

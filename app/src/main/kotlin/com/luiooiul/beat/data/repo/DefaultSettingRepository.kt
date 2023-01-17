@@ -23,6 +23,10 @@ class DefaultSettingRepository @Inject constructor(
         settingLocalDataSource.selectBeatIcon(id)
     }
 
+    override suspend fun saveCustomBeatIcon(filesDir: File, inputStream: InputStream) {
+        settingLocalDataSource.saveCustomBeatIcon(filesDir,inputStream)
+    }
+
     override suspend fun selectSoundEffect(id: Int) {
         settingLocalDataSource.selectSoundEffect(id)
     }
